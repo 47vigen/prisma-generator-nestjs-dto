@@ -27,6 +27,7 @@ import type {
   EntityParams,
   ImportStatementParams,
   ParsedField,
+  IClassTransformer,
   IDecorators,
 } from '../types';
 import type { TemplateHelpers } from '../template-helpers';
@@ -34,6 +35,10 @@ import {
   makeImportsFromNestjsSwagger,
   parseApiProperty,
 } from '../api-decorator';
+import {
+  makeImportsFromClassTransformer,
+  parseClassTransformers,
+} from '../class-transformer';
 
 interface ComputeEntityParamsParam {
   model: Model;
@@ -47,6 +52,7 @@ export const computeEntityParams = ({
 }: ComputeEntityParamsParam): EntityParams => {
   const imports: ImportStatementParams[] = [];
   const apiExtraModels: string[] = [];
+  const classTransformers: IClassTransformer[] = [];
 
   const relationScalarFields = getRelationScalars(model.fields);
   const relationScalarFieldNames = Object.keys(relationScalarFields);
@@ -169,8 +175,26 @@ export const computeEntityParams = ({
       overrides.isNullable = !isAnyRelationRequired;
     }
 
+    // Parse class transformers decorators first
+    decorators.classTransformers = parseClassTransformers(
+      field,
+      templateHelpers.config.globalExcludeFields,
+    );
+    if (decorators.classTransformers?.length) {
+      decorators.classTransformers.forEach((transformer) => {
+        if (!classTransformers.find((ct) => ct.name === transformer.name)) {
+          classTransformers.push(transformer);
+        }
+      });
+    }
+
     if (!templateHelpers.config.noDependencies) {
-      if (isAnnotatedWith(field, DTO_API_HIDDEN)) {
+      // Check if field should be hidden from API
+      const isExcluded =
+        decorators.classTransformers?.some(
+          (transformer) => transformer.name === 'Exclude',
+        ) || false;
+      if (isAnnotatedWith(field, DTO_API_HIDDEN) || isExcluded) {
         decorators.apiHideProperty = true;
       } else {
         decorators.apiProperties = parseApiProperty(
@@ -236,6 +260,8 @@ export const computeEntityParams = ({
     fields,
     apiExtraModels,
   );
+  const importClassTransformer =
+    makeImportsFromClassTransformer(classTransformers);
   const customImports = makeCustomImports(fields);
 
   return {
@@ -244,6 +270,7 @@ export const computeEntityParams = ({
     imports: zipImportStatementParams([
       ...importPrismaClient,
       ...importNestjsSwagger,
+      ...importClassTransformer,
       ...customImports,
       ...imports,
     ]),

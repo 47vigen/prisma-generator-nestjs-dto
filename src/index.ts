@@ -42,6 +42,7 @@ export const generate = async (options: WritableDeep<GeneratorOptions>) => {
     fileNamingStyle = 'camel',
     outputType = 'class',
     generateFileTypes = 'all',
+    globalExcludeFields = '',
   } = options.generator.config;
 
   const exportRelationModifierClasses = stringToBoolean(
@@ -171,6 +172,15 @@ export const generate = async (options: WritableDeep<GeneratorOptions>) => {
     false,
   );
 
+  const parsedGlobalExcludeFields = globalExcludeFields
+    ? Array.isArray(globalExcludeFields)
+      ? globalExcludeFields
+      : globalExcludeFields
+          .split(',')
+          .map((field: string) => field.trim())
+          .filter(Boolean)
+    : [];
+
   const results = run({
     output,
     dmmf: options.dmmf,
@@ -194,6 +204,7 @@ export const generate = async (options: WritableDeep<GeneratorOptions>) => {
     generateFileTypes: generateFileTypes as string,
     wrapRelationsAsType,
     showDefaultValues,
+    globalExcludeFields: parsedGlobalExcludeFields,
   });
 
   // check for deprecated annotations

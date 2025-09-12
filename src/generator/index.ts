@@ -39,6 +39,7 @@ interface RunParam {
   generateFileTypes: string;
   wrapRelationsAsType: boolean;
   showDefaultValues: boolean;
+  globalExcludeFields: string[];
 }
 
 export const run = ({
@@ -61,6 +62,7 @@ export const run = ({
     generateFileTypes,
     wrapRelationsAsType,
     showDefaultValues,
+    globalExcludeFields,
     ...preAndSuffixes
   } = options;
 
@@ -86,6 +88,7 @@ export const run = ({
     outputApiPropertyType,
     wrapRelationsAsType,
     showDefaultValues,
+    globalExcludeFields,
     ...preAndSuffixes,
   });
   const allModels = dmmf.datamodel.models;

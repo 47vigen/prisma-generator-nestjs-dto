@@ -39,3 +39,5 @@ export const DTO_OVERRIDE_TYPE = /@DtoOverrideType/;
 export const DTO_OVERRIDE_API_PROPERTY_TYPE = /@DtoOverrideApiPropertyType/;
 export const DTO_CREATE_VALIDATE_IF = /@DtoCreateValidateIf/;
 export const DTO_UPDATE_VALIDATE_IF = /@DtoUpdateValidateIf/;
+export const DTO_EXCLUDE = /@DtoExclude/;
+export const DTO_INCLUDE = /@DtoInclude/;

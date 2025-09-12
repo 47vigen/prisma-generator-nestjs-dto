@@ -46,9 +46,14 @@ import {
   makeImportsFromClassValidator,
   parseClassValidators,
 } from '../class-validator';
+import {
+  makeImportsFromClassTransformer,
+  parseClassTransformers,
+} from '../class-transformer';
 import type { TemplateHelpers } from '../template-helpers';
 import type {
   IClassValidator,
+  IClassTransformer,
   IDecorators,
   ImportStatementParams,
   Model,
@@ -70,6 +75,7 @@ export const computeUpdateDtoParams = ({
   const extraClasses: string[] = [];
   const apiExtraModels: string[] = [];
   const classValidators: IClassValidator[] = [];
+  const classTransformers: IClassTransformer[] = [];
 
   const relationScalarFields = getRelationScalars(model.fields);
   const relationScalarFieldNames = Object.keys(relationScalarFields);
@@ -218,8 +224,24 @@ export const computeUpdateDtoParams = ({
       );
     }
 
+    // Parse class transformers decorators
+    decorators.classTransformers = parseClassTransformers(
+      field,
+      templateHelpers.config.globalExcludeFields,
+    );
+    concatUniqueIntoArray(
+      decorators.classTransformers,
+      classTransformers,
+      'name',
+    );
+
     if (!templateHelpers.config.noDependencies) {
-      if (isAnnotatedWith(field, DTO_API_HIDDEN)) {
+      // Check if field should be hidden from API
+      const isExcluded =
+        decorators.classTransformers?.some(
+          (transformer) => transformer.name === 'Exclude',
+        ) || false;
+      if (isAnnotatedWith(field, DTO_API_HIDDEN) || isExcluded) {
         decorators.apiHideProperty = true;
       } else {
         // If outputApiPropertyType is false, make sure to set includeType false, otherwise use negated overrides.type
@@ -293,6 +315,8 @@ export const computeUpdateDtoParams = ({
     apiExtraModels,
   );
   const importClassValidator = makeImportsFromClassValidator(classValidators);
+  const importClassTransformer =
+    makeImportsFromClassTransformer(classTransformers);
   const customImports = makeCustomImports(fields);
 
   return {
@@ -302,6 +326,7 @@ export const computeUpdateDtoParams = ({
       ...importPrismaClient,
       ...importNestjsSwagger,
       ...importClassValidator,
+      ...importClassTransformer,
       ...customImports,
       ...imports,
     ]),

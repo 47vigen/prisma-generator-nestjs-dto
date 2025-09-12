@@ -16,6 +16,7 @@ import {
 import type {
   ConnectDtoParams,
   IClassValidator,
+  IClassTransformer,
   IDecorators,
   ImportStatementParams,
   Model,
@@ -30,6 +31,10 @@ import {
   makeImportsFromClassValidator,
   parseClassValidators,
 } from '../class-validator';
+import {
+  makeImportsFromClassTransformer,
+  parseClassTransformers,
+} from '../class-transformer';
 import { DTO_CONNECT_HIDDEN } from '../annotations';
 import { WritableDeep } from 'type-fest';
 
@@ -45,6 +50,7 @@ export const computeConnectDtoParams = ({
   const apiExtraModels: string[] = [];
   const extraClasses: string[] = [];
   const classValidators: IClassValidator[] = [];
+  const classTransformers: IClassTransformer[] = [];
 
   const idFields = model.fields.filter(
     (field) => !isAnnotatedWith(field, DTO_CONNECT_HIDDEN) && isId(field),
@@ -137,22 +143,42 @@ export const computeConnectDtoParams = ({
       );
     }
 
+    // Parse class transformers decorators
+    decorators.classTransformers = parseClassTransformers(
+      field,
+      templateHelpers.config.globalExcludeFields,
+    );
+    concatUniqueIntoArray(
+      decorators.classTransformers,
+      classTransformers,
+      'name',
+    );
+
     if (!templateHelpers.config.noDependencies) {
-      decorators.apiProperties = parseApiProperty(
-        {
-          ...field,
-          ...overrides,
-        },
-        {
-          default: false,
-          type: templateHelpers.config.outputApiPropertyType,
-        },
-      );
-      const typeProperty = decorators.apiProperties.find(
-        (p) => p.name === 'type',
-      );
-      if (typeProperty?.value === field.type && field.type === 'Json')
-        typeProperty.value = '() => Object';
+      // Check if field should be hidden from API
+      const isExcluded =
+        decorators.classTransformers?.some(
+          (transformer) => transformer.name === 'Exclude',
+        ) || false;
+      if (isExcluded) {
+        decorators.apiHideProperty = true;
+      } else {
+        decorators.apiProperties = parseApiProperty(
+          {
+            ...field,
+            ...overrides,
+          },
+          {
+            default: false,
+            type: templateHelpers.config.outputApiPropertyType,
+          },
+        );
+        const typeProperty = decorators.apiProperties.find(
+          (p) => p.name === 'type',
+        );
+        if (typeProperty?.value === field.type && field.type === 'Json')
+          typeProperty.value = '() => Object';
+      }
     }
 
     if (templateHelpers.config.noDependencies) {
@@ -189,6 +215,8 @@ export const computeConnectDtoParams = ({
     apiExtraModels,
   );
   const importClassValidator = makeImportsFromClassValidator(classValidators);
+  const importClassTransformer =
+    makeImportsFromClassTransformer(classTransformers);
   const customImports = makeCustomImports(fields);
 
   return {
@@ -198,6 +226,7 @@ export const computeConnectDtoParams = ({
       ...importPrismaClient,
       ...importNestjsSwagger,
       ...importClassValidator,
+      ...importClassTransformer,
       ...customImports,
       ...imports,
     ]),

@@ -1,6 +1,7 @@
 import { ImportStatementParams, ParsedField } from './types';
 import { decorateApiProperty } from './api-decorator';
 import { decorateClassValidators } from './class-validator';
+import { decorateClassTransformers } from './class-transformer';
 import { isAnnotatedWith, isType } from './field-classifiers';
 import {
   DTO_CAST_TYPE,
@@ -110,6 +111,7 @@ interface MakeHelpersParam {
   outputApiPropertyType: boolean;
   wrapRelationsAsType: boolean;
   showDefaultValues: boolean;
+  globalExcludeFields: string[];
 }
 export const makeHelpers = ({
   connectDtoPrefix,
@@ -130,6 +132,7 @@ export const makeHelpers = ({
   outputApiPropertyType,
   wrapRelationsAsType,
   showDefaultValues,
+  globalExcludeFields,
 }: MakeHelpersParam) => {
   const className = (name: string, prefix = '', suffix = '') =>
     `${prefix}${transformClassNameCase(name)}${suffix}`;
@@ -227,7 +230,7 @@ export const makeHelpers = ({
     useInputTypes = false,
     forceOptional = false,
   ) =>
-    `${decorateApiProperty(field)}${decorateClassValidators(field)}${
+    `${decorateApiProperty(field)}${decorateClassValidators(field)}${decorateClassTransformers(field.classTransformers || [])}${
       field.name
     }${unless(
       field.isRequired && !forceOptional,
@@ -256,7 +259,7 @@ export const makeHelpers = ({
     )}`;
 
   const fieldToEntityProp = (field: ParsedField) =>
-    `${decorateApiProperty(field)}${field.name}${unless(
+    `${decorateApiProperty(field)}${decorateClassTransformers(field.classTransformers || [])}${field.name}${unless(
       field.isRequired,
       '?',
       when(definiteAssignmentAssertion, '!'),
@@ -286,6 +289,7 @@ export const makeHelpers = ({
       outputApiPropertyType,
       wrapRelationsAsType,
       showDefaultValues,
+      globalExcludeFields,
     },
     apiExtraModels,
     entityName,

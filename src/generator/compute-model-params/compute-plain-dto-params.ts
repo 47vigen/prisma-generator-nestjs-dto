@@ -23,12 +23,17 @@ import type {
   ImportStatementParams,
   ParsedField,
   PlainDtoParams,
+  IClassTransformer,
   IDecorators,
 } from '../types';
 import {
   makeImportsFromNestjsSwagger,
   parseApiProperty,
 } from '../api-decorator';
+import {
+  makeImportsFromClassTransformer,
+  parseClassTransformers,
+} from '../class-transformer';
 
 interface ComputePlainDtoParamsParam {
   model: Model;
@@ -42,6 +47,7 @@ export const computePlainDtoParams = ({
 }: ComputePlainDtoParamsParam): PlainDtoParams => {
   const imports: ImportStatementParams[] = [];
   const apiExtraModels: string[] = [];
+  const classTransformers: IClassTransformer[] = [];
 
   const relationScalarFields = getRelationScalars(model.fields);
   const relationScalarFieldNames = Object.keys(relationScalarFields);
@@ -101,8 +107,26 @@ export const computePlainDtoParams = ({
       }
     }
 
+    // Parse class transformers decorators first
+    decorators.classTransformers = parseClassTransformers(
+      field,
+      templateHelpers.config.globalExcludeFields,
+    );
+    if (decorators.classTransformers?.length) {
+      decorators.classTransformers.forEach((transformer) => {
+        if (!classTransformers.find((ct) => ct.name === transformer.name)) {
+          classTransformers.push(transformer);
+        }
+      });
+    }
+
     if (!templateHelpers.config.noDependencies) {
-      if (isAnnotatedWith(field, DTO_API_HIDDEN)) {
+      // Check if field should be hidden from API
+      const isExcluded =
+        decorators.classTransformers?.some(
+          (transformer) => transformer.name === 'Exclude',
+        ) || false;
+      if (isAnnotatedWith(field, DTO_API_HIDDEN) || isExcluded) {
         decorators.apiHideProperty = true;
       } else {
         decorators.apiProperties = parseApiProperty(
@@ -166,6 +190,8 @@ export const computePlainDtoParams = ({
     fields,
     apiExtraModels,
   );
+  const importClassTransformer =
+    makeImportsFromClassTransformer(classTransformers);
   const customImports = makeCustomImports(fields);
 
   return {
@@ -174,6 +200,7 @@ export const computePlainDtoParams = ({
     imports: zipImportStatementParams([
       ...importPrismaClient,
       ...importNestjsSwagger,
+      ...importClassTransformer,
       ...customImports,
       ...imports,
     ]),
