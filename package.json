@@ -1,17 +1,23 @@
 {
-  "name": "@brakebein/prisma-generator-nestjs-dto",
+  "name": "viguen-prisma-generator-nestjs-dto",
   "description": "Generates DTO and Entity classes from Prisma Schema for NestJS",
-  "version": "1.28.1",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "author": {
-    "name": "Benjamin Kroeger",
-    "email": "bk@vegardit.com",
-    "url": "https://vegardit.com/"
+    "name": "47vigen",
+    "email": "47vigen@gmail.com",
+    "url": "https://github.com/47vigen"
   },
   "contributors": [
     {
-      "name": "Brakebein",
+      "name": "Benjamin Kroeger",
+      "email": "bk@vegardit.com",
       "url": "https://github.com/Brakebein"
+    },
+    {
+      "name": "47vigen",
+      "email": "47vigen@gmail.com",
+      "url": "https://github.com/47vigen"
     }
   ],
   "main": "dist/index.js",
@@ -41,10 +47,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Brakebein/prisma-generator-nestjs-dto"
+    "url": "https://github.com/47vigen/prisma-generator-nestjs-dto"
   },
   "bin": {
-    "prisma-generator-nestjs-dto": "dist/cli.js"
+    "viguen-prisma-generator-nestjs-dto": "dist/cli.js"
   },
   "engines": {
     "node": ">=14"

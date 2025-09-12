@@ -1,7 +1,7 @@
 # Prisma Generator NestJS DTO
 
-[![Release](https://badge.fury.io/js/%40brakebein%2Fprisma-generator-nestjs-dto.svg)](https://www.npmjs.com/package/@brakebein/prisma-generator-nestjs-dto)
-[![License](https://img.shields.io/github/license/Brakebein/prisma-generator-nestjs-dto.svg?label=license)](#license)
+[![Release](https://badge.fury.io/js/viguen-prisma-generator-nestjs-dto.svg)](https://www.npmjs.com/package/viguen-prisma-generator-nestjs-dto)
+[![License](https://img.shields.io/github/license/47vigen/prisma-generator-nestjs-dto.svg?label=license)](#license)
 
 1. [What is it?](#what-is-it)
 1. [Usage](#usage)
@@ -16,25 +16,29 @@ Generates `ConnectDTO`, `CreateDTO`, `UpdateDTO`, `DTO`, and `Entity` classes fo
 
 These classes can also be used with the built-in [ValidationPipe](https://docs.nestjs.com/techniques/validation#using-the-built-in-validationpipe) and [Serialization](https://docs.nestjs.com/techniques/serialization).
 
-This is a fork of [@vegardit/prisma-generator-nestjs-dto](https://github.com/vegardit/prisma-generator-nestjs-dto) and adds multiple features:
+This is a fork of [@brakebein/prisma-generator-nestjs-dto](https://github.com/Brakebein/prisma-generator-nestjs-dto) and adds additional features:
 
-* enhance fields with additional schema information, e.g., description, to generate a `@ApiProperty()` decorator (see [Schema Object annotations](#schema-object-annotations))
-* optionally add [validation decorators](#validation-decorators)
-* support for composite types
-* control output format with additional flags `flatResourceStructure`, `noDependencies`, and `outputType`
-* optionally auto-format output with prettier
+- **Global field exclusion**: Configure fields to be globally excluded from all DTOs with `@Exclude()` decorator
+- **@DtoExclude annotation**: Add `@Exclude()` decorator from class-transformer to individual fields
+- **@DtoExpose annotation**: Add `@Expose()` decorator from class-transformer to individual fields
+- **API documentation integration**: Excluded fields automatically use `@ApiHideProperty()` instead of `@ApiProperty()`
+- enhance fields with additional schema information, e.g., description, to generate a `@ApiProperty()` decorator (see [Schema Object annotations](#schema-object-annotations))
+- optionally add [validation decorators](#validation-decorators)
+- support for composite types
+- control output format with additional flags `flatResourceStructure`, `noDependencies`, and `outputType`
+- optionally auto-format output with prettier
 
 See [CHANGELOG](CHANGELOG.md) for all improvements and changes.
 
 ## Usage?
 
 ```sh
-npm install --save-dev @brakebein/prisma-generator-nestjs-dto
+npm install --save-dev viguen-prisma-generator-nestjs-dto
 ```
 
 ```prisma
 generator nestjsDto {
-  provider                        = "prisma-generator-nestjs-dto"
+  provider                        = "viguen-prisma-generator-nestjs-dto"
   output                          = "../src/generated/nestjs-dto"
   prismaClientImportPath          = ""
   outputToNestJsResourceStructure = "false"
@@ -56,6 +60,7 @@ generator nestjsDto {
   prettier                        = "false"
   wrapRelationsAsType             = "false"
   showDefaultValues               = "false"
+  globalExcludeFields             = ""
 }
 ```
 
@@ -64,7 +69,7 @@ generator nestjsDto {
 All parameters are optional.
 
 | Parameter = default                                              | Description                                                                                                                                                                                                                     |
-|------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `output = "../src/generated/nestjs-dto"`                         | output path relative to your `schema.prisma` file                                                                                                                                                                               |
 | `prismaClientImportPath = ""`                                    | Override import path of Prisma client. Defaults to either `@prisma/client` or a relative path based on your generator client output config (see [#73](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/73)).     |
 | <code>outputToNestJsResourceStructure&nbsp;=&nbsp;"false"</code> | writes `dto`s and `entities` to subfolders aligned with [NestJS CRUD generator](https://docs.nestjs.com/recipes/crud-generator). Resource module name is derived from lower-cased model name in `schema.prisma`                 |
@@ -86,6 +91,7 @@ All parameters are optional.
 | `prettier = "false"`                                             | Stylize output files with prettier.                                                                                                                                                                                             |
 | `wrapRelationsAsType = "false"`                                  | If `true`, import relations as types to solve circular reference issues with SWC (see [#39](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/39#issuecomment-2374098494)).                                       |
 | `showDefaultValues = "false"`                                    | If `true`, makes fields with `@default` attribute visible by default, instead of using `@DtoCreateOptional` and `@DtoUpdateOptional` each time (see [#51](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/51)). |
+| `globalExcludeFields = ""`                                       | Comma-separated list of field names to globally exclude from all DTOs with `@Exclude()` decorator and `@ApiHideProperty()` (e.g., `"id,createdAt,updatedAt"`).                                                                  |
 
 ## Annotations
 
@@ -99,10 +105,21 @@ model Post {
   /// @DtoOverrideType(DurationLike, luxon)
   timeUntilExpires Json?
 }
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  /// @DtoExclude
+  password  String
+  /// @DtoExpose
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 ```
 
 | Annotation                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@DtoReadOnly`                      | omits field in `CreateDTO` and `UpdateDTO`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `@DtoCreateHidden`                  | omits field in `CreateDTO`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `@DtoUpdateHidden`                  | omits field in `UpdateDTO`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -113,7 +130,7 @@ model Post {
 | `@DtoCreateRequired`                | marks field **required** in `CreateDTO` that is otherwise optional - also adds field that would otherwise be omitted (e.g. `@id`, `@updatedAt`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `@DtoUpdateOptional`                | adds field **optionally** to `UpdateDTO` - useful for fields that would otherwise be omitted (e.g. `@id`, `@updatedAt`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `@DtoUpdateRequired`                | marks field **required** in `UpdateDTO` that is otherwise optional - also adds field that would otherwise be omitted (e.g. `@id`, `@updatedAt`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `@DtoRelationRequired`              | marks relation **required** in `Entity` although it's optional in PrismaSchema - useful when you don't want (SQL) `ON DELETE CASCADE` behavior - but your logical data schema sees this relation as required  (**Note**: becomes obsolete once [referentialActions](https://github.com/prisma/prisma/issues/7816) are released and stable)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `@DtoRelationRequired`              | marks relation **required** in `Entity` although it's optional in PrismaSchema - useful when you don't want (SQL) `ON DELETE CASCADE` behavior - but your logical data schema sees this relation as required (**Note**: becomes obsolete once [referentialActions](https://github.com/prisma/prisma/issues/7816) are released and stable)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `@DtoRelationCanCreateOnCreate`     | adds [create](https://www.prisma.io/docs/concepts/components/prisma-client/relation-queries#create-a-related-record) option on a relation field in the generated `CreateDTO` - useful when you want to allow to create related model instances                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `@DtoRelationCanConnectOnCreate`    | adds [connect](https://www.prisma.io/docs/concepts/components/prisma-client/relation-queries#connect-multiple-records) option on a relation field in the generated `CreateDTO` - useful when you want/need to connect to an existing related instance                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `@DtoRelationCanCreateOnUpdate`     | adds [create](https://www.prisma.io/docs/concepts/components/prisma-client/relation-queries#create-a-related-record) option on a relation field in the generated `UpdateDTO` - useful when you want to allow to create related model instances                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -126,6 +143,8 @@ model Post {
 | `@DtoOverrideApiPropertyType(...)`  | same as `@DtoOverrideType` but for `@ApiProperty()` `type` property                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `@DtoCreateValidateIf(...)`         | adds `@ValidateIf(...)` decorator for field in `CreateDTO` (for [conditional validation](https://github.com/typestack/class-validator#conditional-validation) by class-validator)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `@DtoUpdateValidateIf(...)`         | adds `@ValidateIf(...)` decorator for field in `UpdateDTO` (for [conditional validation](https://github.com/typestack/class-validator#conditional-validation) by class-validator)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `@DtoExclude`                       | adds `@Exclude()` decorator from `class-transformer` to exclude field during serialization and `@ApiHideProperty()` to hide from API documentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `@DtoExpose`                        | adds `@Expose()` decorator from `class-transformer` to explicitly expose field during serialization                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ### Schema Object annotations
 
@@ -140,24 +159,24 @@ To enhance a field with additional schema information, add the schema property p
 
 Currently, following schema properties are supported:
 
-* `description`
-* `minimum`
-* `maximum`
-* `exclusiveMinimum`
-* `exclusiveMaximum`
-* `minLength`
-* `maxLength`
-* `minItems`
-* `maxItems`
-* `example`
+- `description`
+- `minimum`
+- `maximum`
+- `exclusiveMinimum`
+- `exclusiveMaximum`
+- `minLength`
+- `maxLength`
+- `minItems`
+- `maxItems`
+- `example`
 
 Additionally, special data types are inferred and annotated as well:
 
-* `Int: { type: 'integer', format: 'int32' }`
-* `BigInt: { type: 'integer', format: 'int64' }`
-* `Float: { type: 'number', format: 'float' }`
-* `Decimal: { type: 'number', format: 'double' }`
-* `DateTime: { type: 'string', format: 'date-time' }`
+- `Int: { type: 'integer', format: 'int32' }`
+- `BigInt: { type: 'integer', format: 'int64' }`
+- `Float: { type: 'number', format: 'float' }`
+- `Decimal: { type: 'number', format: 'double' }`
+- `DateTime: { type: 'string', format: 'date-time' }`
 
 #### Example
 
@@ -194,13 +213,13 @@ If the field is optional, it will add `@IsOptional()`, otherwise `@IsNotEmpty()`
 If the field is a list, it will add `@IsArray()`.
 Type validators are inferred from the field's type:
 
-* `String` &rarr; `@IsString()`
-* `Boolean` &rarr; `@IsBoolean()`
-* `Int` &rarr; `@IsInt()`
-* `BigInt` &rarr; `@IsInt()`
-* `Float:` &rarr; `@IsNumber()`
-* `Decimal:` &rarr; `@IsDecimal()`
-* `DateTime` &rarr; `@IsDateString()`
+- `String` &rarr; `@IsString()`
+- `Boolean` &rarr; `@IsBoolean()`
+- `Int` &rarr; `@IsInt()`
+- `BigInt` &rarr; `@IsInt()`
+- `Float:` &rarr; `@IsNumber()`
+- `Decimal:` &rarr; `@IsDecimal()`
+- `DateTime` &rarr; `@IsDateString()`
 
 All remaining [validation decorators](https://github.com/typestack/class-validator#validation-decorators) can be added in the comment/documentation section above the field.
 The parentheses can be omitted if not passing a value.
@@ -250,34 +269,35 @@ generator nestjsDto {
 }
 
 model Question {
-  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  /// @DtoReadOnly
-  createdAt   DateTime @default(now())
-  /// @DtoRelationRequired
-  createdBy   User? @relation("CreatedQuestions", fields: [createdById], references: [id])
-  createdById String? @db.Uuid
-  updatedAt   DateTime @updatedAt
-  /// @DtoRelationRequired
-  updatedBy   User? @relation("UpdatedQuestions", fields: [updatedById], references: [id])
-  updatedById String? @db.Uuid
+id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+/// @DtoReadOnly
+createdAt DateTime @default(now())
+/// @DtoRelationRequired
+createdBy User? @relation("CreatedQuestions", fields: [createdById], references: [id])
+createdById String? @db.Uuid
+updatedAt DateTime @updatedAt
+/// @DtoRelationRequired
+updatedBy User? @relation("UpdatedQuestions", fields: [updatedById], references: [id])
+updatedById String? @db.Uuid
 
-  /// @DtoRelationRequired
-  /// @DtoRelationCanConnectOnCreate
-  category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId String?   @db.Uuid
+/// @DtoRelationRequired
+/// @DtoRelationCanConnectOnCreate
+category Category? @relation(fields: [categoryId], references: [id])
+categoryId String? @db.Uuid
 
-  /// @DtoCreateOptional
-  /// @DtoRelationCanCreateOnCreate
-  /// @DtoRelationCanConnectOnCreate
-  /// @DtoRelationCanCreateOnUpdate
-  /// @DtoRelationCanConnectOnUpdate
-  tags Tag[]
+/// @DtoCreateOptional
+/// @DtoRelationCanCreateOnCreate
+/// @DtoRelationCanConnectOnCreate
+/// @DtoRelationCanCreateOnUpdate
+/// @DtoRelationCanConnectOnUpdate
+tags Tag[]
 
-  title     String
-  content   String
-  responses Response[]
+title String
+content String
+responses Response[]
 }
-```
+
+````
 
 </details>
 
@@ -289,7 +309,7 @@ model Question {
 export class ConnectQuestionDto {
   id: string;
 }
-```
+````
 
 ```ts
 // src/question/dto/create-question.dto.ts
@@ -363,6 +383,75 @@ export class Question {
   responses?: Response[];
 }
 ```
+
+</details>
+
+### New Features Example
+
+This example demonstrates the new `globalExcludeFields`, `@DtoExclude`, and `@DtoExpose` features:
+
+<details>
+  <summary>Prisma Schema with new annotations</summary>
+  
+```prisma
+generator nestjsDto {
+  provider            = "viguen-prisma-generator-nestjs-dto"
+  output              = "../src"
+  globalExcludeFields = "id,createdAt,updatedAt"
+}
+
+model User {
+id String @id @default(cuid())
+email String @unique
+name String?
+/// @DtoExclude
+password String
+/// @DtoExpose
+isActive Boolean @default(true)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+}
+
+````
+
+</details>
+
+<details>
+<summary>Generated Entity with class-transformer decorators</summary>
+
+```ts
+// src/user/entities/user.entity.ts
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
+import { Exclude, Expose } from 'class-transformer';
+
+export class User {
+  @ApiHideProperty()  // Hidden from API docs
+  @Exclude()          // From globalExcludeFields
+  id: string;
+
+  @ApiProperty({ type: 'string' })
+  email: string;
+
+  @ApiProperty({ type: 'string', nullable: true })
+  name: string | null;
+
+  @ApiHideProperty()  // Hidden from API docs
+  @Exclude()          // From @DtoExclude annotation
+  password: string;
+
+  @ApiProperty({ type: 'boolean' })
+  @Expose()           // From @DtoExpose annotation
+  isActive: boolean;
+
+  @ApiHideProperty()  // Hidden from API docs
+  @Exclude()          // From globalExcludeFields
+  createdAt: Date;
+
+  @ApiHideProperty()  // Hidden from API docs
+  @Exclude()          // From globalExcludeFields
+  updatedAt: Date;
+}
+````
 
 </details>
 
@@ -441,4 +530,4 @@ This is useful if your response is the plain entity without any (optional) relat
 
 ## License
 
-All files are released under the [Apache License 2.0](https://github.com/Brakebein/prisma-generator-nestjs-dto/blob/master/LICENSE).
+All files are released under the [Apache License 2.0](https://github.com/47vigen/prisma-generator-nestjs-dto/blob/master/LICENSE).

@@ -1,6 +1,6 @@
 import { IClassTransformer, ImportStatementParams, ParsedField } from './types';
 import { isAnnotatedWith } from './field-classifiers';
-import { DTO_EXCLUDE, DTO_INCLUDE } from './annotations';
+import { DTO_EXCLUDE, DTO_EXPOSE } from './annotations';
 
 export const parseClassTransformers = (
   field: ParsedField,
@@ -17,7 +17,7 @@ export const parseClassTransformers = (
     decorators.push({ name: 'Exclude' });
   }
 
-  if (isAnnotatedWith(field, DTO_INCLUDE)) {
+  if (isAnnotatedWith(field, DTO_EXPOSE)) {
     decorators.push({ name: 'Expose' });
   }
 
