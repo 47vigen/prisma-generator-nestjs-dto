@@ -154,6 +154,15 @@ export const computeEntityParams = ({
           ],
           from: importFrom,
         });
+
+        // Add @Type decorator for relation fields
+        if (!decorators.classTransformers) {
+          decorators.classTransformers = [];
+        }
+        decorators.classTransformers.push({
+          name: 'Type',
+          value: `() => ${importName}`,
+        });
       }
     }
 
@@ -175,11 +184,19 @@ export const computeEntityParams = ({
       overrides.isNullable = !isAnyRelationRequired;
     }
 
-    // Parse class transformers decorators first
-    decorators.classTransformers = parseClassTransformers(
+    // Parse class transformers decorators (Exclude/Expose)
+    const parsedTransformers = parseClassTransformers(
       field,
       templateHelpers.config.globalExcludeFields,
     );
+    if (parsedTransformers?.length) {
+      if (!decorators.classTransformers) {
+        decorators.classTransformers = [];
+      }
+      decorators.classTransformers.push(...parsedTransformers);
+    }
+
+    // Collect all class transformers for import
     if (decorators.classTransformers?.length) {
       decorators.classTransformers.forEach((transformer) => {
         if (!classTransformers.find((ct) => ct.name === transformer.name)) {

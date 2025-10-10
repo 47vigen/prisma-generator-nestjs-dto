@@ -18,9 +18,10 @@ These classes can also be used with the built-in [ValidationPipe](https://docs.n
 
 This is a fork of [@brakebein/prisma-generator-nestjs-dto](https://github.com/Brakebein/prisma-generator-nestjs-dto) and adds additional features:
 
-- **Global field exclusion**: Configure fields to be globally excluded from all DTOs with `@Exclude()` decorator
+- **Global field exclusion with pattern matching**: Configure fields to be globally excluded from all DTOs with `@Exclude()` decorator. Supports wildcards (`*Id`, `*At`, etc.) for flexible pattern matching
 - **@DtoExclude annotation**: Add `@Exclude()` decorator from class-transformer to individual fields
-- **@DtoExpose annotation**: Add `@Expose()` decorator from class-transformer to individual fields
+- **@DtoExpose/@DtoInclude annotations**: Add `@Expose()` decorator from class-transformer to individual fields
+- **Automatic @Type() for relations**: Relation fields in entity files automatically get `@Type(() => RelationEntity)` decorator for proper nested object transformation
 - **API documentation integration**: Excluded fields automatically use `@ApiHideProperty()` instead of `@ApiProperty()`
 - enhance fields with additional schema information, e.g., description, to generate a `@ApiProperty()` decorator (see [Schema Object annotations](#schema-object-annotations))
 - optionally add [validation decorators](#validation-decorators)
@@ -68,30 +69,30 @@ generator nestjsDto {
 
 All parameters are optional.
 
-| Parameter = default                                              | Description                                                                                                                                                                                                                     |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `output = "../src/generated/nestjs-dto"`                         | output path relative to your `schema.prisma` file                                                                                                                                                                               |
-| `prismaClientImportPath = ""`                                    | Override import path of Prisma client. Defaults to either `@prisma/client` or a relative path based on your generator client output config (see [#73](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/73)).     |
-| <code>outputToNestJsResourceStructure&nbsp;=&nbsp;"false"</code> | writes `dto`s and `entities` to subfolders aligned with [NestJS CRUD generator](https://docs.nestjs.com/recipes/crud-generator). Resource module name is derived from lower-cased model name in `schema.prisma`                 |
-| `flatResourceStructure = "false"`                                | If `outputToNestJsResourceStructure` is `true`, subfolders `dto`s and `entities` are created within the resource folder. Setting this to `true` will flatten the hierarchy.                                                     |
-| `exportRelationModifierClasses = "true"`                         | Should extra classes generated for relationship field operations on DTOs be exported?                                                                                                                                           |
-| `reExport = "false"`                                             | Should an index.ts be created for every folder?                                                                                                                                                                                 |
-| `generateFileTypes = "all"`                                      | `all`: generate both DTO and Entity files, `dto`: generate only DTO files, `entity`: generate only Entity files (not possible in combination with complex types)                                                                |
-| `createDtoPrefix = "Create"`                                     | phrase to prefix every `CreateDTO` class with                                                                                                                                                                                   |
-| `updateDtoPrefix = "Update"`                                     | phrase to prefix every `UpdateDTO` class with                                                                                                                                                                                   |
-| `dtoSuffix = "Dto"`                                              | phrase to suffix every `CreateDTO` and `UpdateDTO` class with                                                                                                                                                                   |
-| `entityPrefix = ""`                                              | phrase to prefix every `Entity` class with                                                                                                                                                                                      |
-| `entitySuffix = ""`                                              | phrase to suffix every `Entity` class with                                                                                                                                                                                      |
-| `fileNamingStyle = "camel"`                                      | How to name generated files. Valid choices are `"camel"`, `"pascal"`, `"kebab"` and `"snake"`.                                                                                                                                  |
-| `classValidation = "false"`                                      | Add validation decorators from `class-validator`. Not compatible with `noDependencies = "true"` and `outputType = "interface"`.                                                                                                 |
-| `noDependencies = "false"`                                       | Any imports and decorators that are specific to NestJS and Prisma are omitted, such that there are no references to external dependencies. This is useful if you want to generate appropriate DTOs for the frontend.            |
-| `outputType = "class"`                                           | Output the DTOs as `class` or as `interface`. `interface` should only be used to generate DTOs for the frontend.                                                                                                                |
-| `definiteAssignmentAssertion = "false"`                          | Add a definite assignment assertion operator `!` to required fields, which is required if `strict` and/or `strictPropertyInitialization` is set `true` in your tsconfig.json's `compilerOptions`.                               |
-| `requiredResponseApiProperty = "true"`                           | If `false`, add `@ApiRequired({ required: false })` to response DTO properties. Otherwise, use `required` defaults always to `true` unless field is optional.                                                                   |
-| `prettier = "false"`                                             | Stylize output files with prettier.                                                                                                                                                                                             |
-| `wrapRelationsAsType = "false"`                                  | If `true`, import relations as types to solve circular reference issues with SWC (see [#39](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/39#issuecomment-2374098494)).                                       |
-| `showDefaultValues = "false"`                                    | If `true`, makes fields with `@default` attribute visible by default, instead of using `@DtoCreateOptional` and `@DtoUpdateOptional` each time (see [#51](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/51)). |
-| `globalExcludeFields = ""`                                       | Comma-separated list of field names to globally exclude from all DTOs with `@Exclude()` decorator and `@ApiHideProperty()` (e.g., `"id,createdAt,updatedAt"`).                                                                  |
+| Parameter = default                                              | Description                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `output = "../src/generated/nestjs-dto"`                         | output path relative to your `schema.prisma` file                                                                                                                                                                                                                                                             |
+| `prismaClientImportPath = ""`                                    | Override import path of Prisma client. Defaults to either `@prisma/client` or a relative path based on your generator client output config (see [#73](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/73)).                                                                                   |
+| <code>outputToNestJsResourceStructure&nbsp;=&nbsp;"false"</code> | writes `dto`s and `entities` to subfolders aligned with [NestJS CRUD generator](https://docs.nestjs.com/recipes/crud-generator). Resource module name is derived from lower-cased model name in `schema.prisma`                                                                                               |
+| `flatResourceStructure = "false"`                                | If `outputToNestJsResourceStructure` is `true`, subfolders `dto`s and `entities` are created within the resource folder. Setting this to `true` will flatten the hierarchy.                                                                                                                                   |
+| `exportRelationModifierClasses = "true"`                         | Should extra classes generated for relationship field operations on DTOs be exported?                                                                                                                                                                                                                         |
+| `reExport = "false"`                                             | Should an index.ts be created for every folder?                                                                                                                                                                                                                                                               |
+| `generateFileTypes = "all"`                                      | `all`: generate both DTO and Entity files, `dto`: generate only DTO files, `entity`: generate only Entity files (not possible in combination with complex types)                                                                                                                                              |
+| `createDtoPrefix = "Create"`                                     | phrase to prefix every `CreateDTO` class with                                                                                                                                                                                                                                                                 |
+| `updateDtoPrefix = "Update"`                                     | phrase to prefix every `UpdateDTO` class with                                                                                                                                                                                                                                                                 |
+| `dtoSuffix = "Dto"`                                              | phrase to suffix every `CreateDTO` and `UpdateDTO` class with                                                                                                                                                                                                                                                 |
+| `entityPrefix = ""`                                              | phrase to prefix every `Entity` class with                                                                                                                                                                                                                                                                    |
+| `entitySuffix = ""`                                              | phrase to suffix every `Entity` class with                                                                                                                                                                                                                                                                    |
+| `fileNamingStyle = "camel"`                                      | How to name generated files. Valid choices are `"camel"`, `"pascal"`, `"kebab"` and `"snake"`.                                                                                                                                                                                                                |
+| `classValidation = "false"`                                      | Add validation decorators from `class-validator`. Not compatible with `noDependencies = "true"` and `outputType = "interface"`.                                                                                                                                                                               |
+| `noDependencies = "false"`                                       | Any imports and decorators that are specific to NestJS and Prisma are omitted, such that there are no references to external dependencies. This is useful if you want to generate appropriate DTOs for the frontend.                                                                                          |
+| `outputType = "class"`                                           | Output the DTOs as `class` or as `interface`. `interface` should only be used to generate DTOs for the frontend.                                                                                                                                                                                              |
+| `definiteAssignmentAssertion = "false"`                          | Add a definite assignment assertion operator `!` to required fields, which is required if `strict` and/or `strictPropertyInitialization` is set `true` in your tsconfig.json's `compilerOptions`.                                                                                                             |
+| `requiredResponseApiProperty = "true"`                           | If `false`, add `@ApiRequired({ required: false })` to response DTO properties. Otherwise, use `required` defaults always to `true` unless field is optional.                                                                                                                                                 |
+| `prettier = "false"`                                             | Stylize output files with prettier.                                                                                                                                                                                                                                                                           |
+| `wrapRelationsAsType = "false"`                                  | If `true`, import relations as types to solve circular reference issues with SWC (see [#39](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/39#issuecomment-2374098494)).                                                                                                                     |
+| `showDefaultValues = "false"`                                    | If `true`, makes fields with `@default` attribute visible by default, instead of using `@DtoCreateOptional` and `@DtoUpdateOptional` each time (see [#51](https://github.com/Brakebein/prisma-generator-nestjs-dto/issues/51)).                                                                               |
+| `globalExcludeFields = ""`                                       | Comma-separated list of field names/patterns to globally exclude from all DTOs with `@Exclude()` decorator and `@ApiHideProperty()`. Supports wildcards: `*Id` (ends with), `id*` (starts with), `*id*` (contains). Example: `"id,*At,*Id"` excludes `id`, `createdAt`, `updatedAt`, `userId`, `postId`, etc. |
 
 ## Annotations
 
@@ -388,7 +389,7 @@ export class Question {
 
 ### New Features Example
 
-This example demonstrates the new `globalExcludeFields`, `@DtoExclude`, and `@DtoExpose` features:
+This example demonstrates the new `globalExcludeFields` with pattern matching, `@DtoExclude`, and `@DtoExpose` features:
 
 <details>
   <summary>Prisma Schema with new annotations</summary>
@@ -397,19 +398,30 @@ This example demonstrates the new `globalExcludeFields`, `@DtoExclude`, and `@Dt
 generator nestjsDto {
   provider            = "viguen-prisma-generator-nestjs-dto"
   output              = "../src"
-  globalExcludeFields = "id,createdAt,updatedAt"
+  globalExcludeFields = "*Id,*At"  // Pattern matching: excludes userId, postId, createdAt, updatedAt, etc.
 }
 
 model User {
 id String @id @default(cuid())
+userId String @unique // Excluded by *Id pattern
 email String @unique
 name String?
 /// @DtoExclude
 password String
 /// @DtoExpose
 isActive Boolean @default(true)
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+createdAt DateTime @default(now()) // Excluded by *At pattern
+updatedAt DateTime @updatedAt // Excluded by \*At pattern
+posts Post[]
+}
+
+model Post {
+id String @id @default(cuid())
+postId String @unique // Excluded by *Id pattern
+title String
+authorId String // Excluded by *Id pattern
+author User @relation(fields: [authorId], references: [id])
+createdAt DateTime @default(now()) // Excluded by \*At pattern
 }
 
 ````
@@ -422,12 +434,16 @@ updatedAt DateTime @updatedAt
 ```ts
 // src/user/entities/user.entity.ts
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
+import { Post } from './post.entity';
 
 export class User {
-  @ApiHideProperty()  // Hidden from API docs
-  @Exclude()          // From globalExcludeFields
+  @ApiProperty({ type: 'string' })
   id: string;
+
+  @ApiHideProperty()  // Hidden from API docs
+  @Exclude()          // Matches *Id pattern in globalExcludeFields
+  userId: string;
 
   @ApiProperty({ type: 'string' })
   email: string;
@@ -444,12 +460,16 @@ export class User {
   isActive: boolean;
 
   @ApiHideProperty()  // Hidden from API docs
-  @Exclude()          // From globalExcludeFields
+  @Exclude()          // Matches *At pattern in globalExcludeFields
   createdAt: Date;
 
   @ApiHideProperty()  // Hidden from API docs
-  @Exclude()          // From globalExcludeFields
+  @Exclude()          // Matches *At pattern in globalExcludeFields
   updatedAt: Date;
+
+  @ApiProperty({ type: () => Post, isArray: true, required: false })
+  @Type(() => Post)   // Automatically added for proper nested object transformation
+  posts?: Post[];
 }
 ````
 
