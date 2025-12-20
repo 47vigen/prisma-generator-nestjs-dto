@@ -44,11 +44,11 @@ export const parseClassTransformers = (
   );
 
   if (shouldExclude) {
-    decorators.push({ name: 'Exclude' });
+    decorators.push({ name: 'Exclude', value: '{ toPlainOnly: true }' });
   }
 
   if (isAnnotatedWith(field, DTO_EXCLUDE)) {
-    decorators.push({ name: 'Exclude' });
+    decorators.push({ name: 'Exclude', value: '{ toPlainOnly: true }' });
   }
 
   if (isAnnotatedWith(field, DTO_EXPOSE)) {
