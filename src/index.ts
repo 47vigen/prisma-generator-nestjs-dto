@@ -26,7 +26,6 @@ const stringToBoolean = (
 };
 
 export const generate = async (options: WritableDeep<GeneratorOptions>) => {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const output = parseEnvValue(options.generator.output!);
   if (!output) {
     throw new Error('Failed to parse output path');
@@ -149,6 +148,10 @@ export const generate = async (options: WritableDeep<GeneratorOptions>) => {
     );
     if (!prismaClientImportPath.startsWith('.')) {
       prismaClientImportPath = './' + prismaClientImportPath;
+    }
+    // add client suffix for Prisma v7 output
+    if (prismaClientGenerator?.provider?.value === 'prisma-client') {
+      prismaClientImportPath += '/client';
     }
   }
 
