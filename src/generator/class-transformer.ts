@@ -38,33 +38,38 @@ export const parseClassTransformers = (
 ): IClassTransformer[] => {
   const decorators: IClassTransformer[] = [];
 
-  // Check if field matches any global exclude pattern
+  const isExposed = isAnnotatedWith(field, DTO_EXPOSE);
+
+  // @DtoExpose explicitly opts a field out of globalExcludeFields and @DtoExclude.
+  if (isExposed) {
+    decorators.push({ name: 'Expose' });
+    return decorators;
+  }
+
   const shouldExclude = globalExcludeFields.some((pattern) =>
     matchesPattern(field.name, pattern),
   );
 
-  if (shouldExclude) {
+  if (shouldExclude || isAnnotatedWith(field, DTO_EXCLUDE)) {
     decorators.push({ name: 'Exclude', value: '{ toPlainOnly: true }' });
-  }
-
-  if (isAnnotatedWith(field, DTO_EXCLUDE)) {
-    decorators.push({ name: 'Exclude', value: '{ toPlainOnly: true }' });
-  }
-
-  if (isAnnotatedWith(field, DTO_EXPOSE)) {
-    decorators.push({ name: 'Expose' });
   }
 
   return decorators;
 };
 
-export const decorateClassTransformers = (decorators: IClassTransformer[]) =>
-  decorators.map((decorator) => {
-    if (decorator.value) {
-      return `@${decorator.name}(${decorator.value})`;
-    }
-    return `@${decorator.name}()`;
+export const decorateClassTransformers = (
+  decorators: IClassTransformer[],
+): string => {
+  if (!decorators.length) return '';
+
+  let output = '';
+  decorators.forEach((decorator) => {
+    output += decorator.value
+      ? `@${decorator.name}(${decorator.value})\n`
+      : `@${decorator.name}()\n`;
   });
+  return output;
+};
 
 export const makeImportsFromClassTransformer = (
   classTransformers: IClassTransformer[],
