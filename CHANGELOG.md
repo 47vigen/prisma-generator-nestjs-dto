@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - excluded fields (`globalExcludeFields`, `@DtoExclude`) emit plain `@Exclude()` again instead of `@Exclude({ toPlainOnly: true })`. The one-way variant let clients send excluded fields such as `deletedAt` through `plainToInstance`, re-opening mass assignment.
+- excluded fields are always optional in CreateDTO, since `@Exclude()` drops client input and a required excluded field could never validate.
 
 ## [1.29.0] - 2025-12-12
 
