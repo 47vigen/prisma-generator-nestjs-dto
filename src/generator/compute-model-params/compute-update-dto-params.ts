@@ -157,6 +157,15 @@ export const computeUpdateDtoParams = ({
       overrides.isRequired = true;
     }
 
+    const fieldClassTransformers = parseClassTransformers(
+      field,
+      templateHelpers.config.globalExcludeFields,
+    );
+    // @Exclude() drops client input, so an excluded field can never be required
+    if (fieldClassTransformers.some(({ name }) => name === 'Exclude')) {
+      overrides.isRequired = false;
+    }
+
     if (isType(field)) {
       // don't try to import the class we're preparing params for
       if (
@@ -225,10 +234,7 @@ export const computeUpdateDtoParams = ({
     }
 
     // Parse class transformers decorators
-    decorators.classTransformers = parseClassTransformers(
-      field,
-      templateHelpers.config.globalExcludeFields,
-    );
+    decorators.classTransformers = fieldClassTransformers;
     concatUniqueIntoArray(
       decorators.classTransformers,
       classTransformers,
