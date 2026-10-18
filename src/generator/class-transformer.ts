@@ -51,7 +51,7 @@ export const parseClassTransformers = (
   );
 
   if (shouldExclude || isAnnotatedWith(field, DTO_EXCLUDE)) {
-    decorators.push({ name: 'Exclude', value: '{ toPlainOnly: true }' });
+    decorators.push({ name: 'Exclude' });
   }
 
   return decorators;

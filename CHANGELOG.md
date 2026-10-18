@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.2.2] - 2026-10-18
+
+### Fixed
+
+- excluded fields (`globalExcludeFields`, `@DtoExclude`) emit plain `@Exclude()` again instead of `@Exclude({ toPlainOnly: true })`. The one-way variant let clients send excluded fields such as `deletedAt` through `plainToInstance`, re-opening mass assignment.
+
 ## [1.29.0] - 2025-12-12
 
 - dependency updates
